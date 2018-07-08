@@ -1,0 +1,303 @@
+<!--  -->
+<template>
+<swiper @tap='previewpic' indicator-dots="{{indicatorDots}}"
+  autoplay="{{autoplay}}" interval="{{interval}}" duration="{{duration}}">
+  <block wx:for="{{goodsdetail.pics}}">
+    <swiper-item>
+      <image src="{{item.pics_mid}}" class="slide-image" width="355" height="150"/>
+    </swiper-item>
+  </block>
+</swiper>
+<view class="price">￥{{goodsdetail.goods_price}}</view>
+<view class="title">
+  <view class="left">{{goodsdetail.goods_name}}</view>
+  <view class="right">
+    <text class='iconfont icon-shoucang'></text>
+    <text>收藏</text>
+  </view>
+</view>
+<view class="express">快递:免运费</view>
+<view class="bottom">
+  <tabBar :parentTitle.sync="parentTitle" :selectindex="selectindex"></tabBar>
+  <view class="bt-footer">
+    <view  hidden='{{selectindex!=0}}'>
+      <import src="/wxParse/wxParse.wxml"/>
+      <template is="wxParse" data="{{wxParseData:article.nodes}}"/>
+    </view>
+    <view hidden='{{selectindex!=1}}'>
+      <block wx:for='{{goodsdetail.attrs}}'>
+          <view class="row1">
+            <view class="left">{{item.attr_name}}</view>
+            <view class="right">{{item.attr_value}}</view>
+          </view>
+      </block>
+      
+    </view>
+  </view>
+</view>
+<view class="footer">
+  <view class="servier">
+    <view class='iconfont icon-kefu'></view>
+    联系客服
+  </view>
+  <view @tap='tocart' class='cart'>
+    <view class="iconfont icon-gouwuche"></view>
+    购物车
+  </view>
+  <view class="addcart" @tap='toaddcart'>加入购物车</view>
+  <view class="buy">立即购买</view>
+</view>
+</template>
+
+<script>
+import wepy from 'wepy'
+import tabBar from '../component/tabBar'
+var WxParse = require('../wxParse/wxParse.js');
+var method = require('../until/method.js');
+export default class detail extends wepy.page {
+  config = {
+    navigationBarTitleText: '商品详情'
+  };
+
+  data = {
+    goodsId: '',
+    goodsdetail: '',
+    indicatorDots: true,
+    imgdata: [],
+    selectindex: 0,
+    autoplay: true,
+    interval: 5000,
+    duration: 1000,
+    parentTitle:['图文介绍','规格参数']
+
+  };
+
+  components = {
+    tabBar:tabBar
+  };
+
+  methods = {
+    previewpic() {
+      wx.previewImage({
+        urls: this.imgdata
+      });
+    },
+    toaddcart() {
+      wx.showLoading({
+        title: '正在加入购物车',
+        mask: true
+      });
+      var cartdata = undefined;
+      wx.getStorage({
+        key: 'cart',
+        success: res => {
+          cartdata = res.data;
+          console.log(res);
+          if (cartdata[this.goodsId]) {
+            cartdata[this.goodsId] += 1;
+          } else {
+            cartdata[this.goodsId] = 1;
+          }
+          wx.setStorage({
+            key: 'cart',
+            data: cartdata
+          });
+          setTimeout(function() {
+            wx.hideLoading();
+          }, 1000);
+        },
+        fail: res => {
+          console.log(res);
+          cartdata = {};
+          cartdata[this.goodsId] = 1;
+          wx.setStorage({
+            key: 'cart',
+            data: cartdata
+          });
+           setTimeout(function() {
+            wx.hideLoading();
+          }, 1000);
+        }
+      });
+    },
+    tocart() {
+      wx.switchTab({
+        url: '/pages/buycart'
+      });
+    }
+  };
+  events = {};
+
+  watch = {};
+
+  computed = {};
+
+  onLoad(opt) {
+    this.goodsId = opt.id;
+    method.request({
+      url: 'api/public/v1/goods/detail',
+      data: {
+        goods_id: this.goodsId
+      },
+      success: res => {
+        console.log(res);
+        this.goodsdetail = res.data.message;
+        this.goodsdetail.pics.forEach(res => {
+          this.imgdata.push(res.pics_mid);
+        });
+        this.$apply();
+        var article = this.goodsdetail.goods_introduce;
+        /**
+         * WxParse.wxParse(bindName , type, data, target,imagePadding)
+         * 1.bindName绑定的数据名(必填)
+         * 2.type可以为html或者md(必填)
+         * 3.data为传入的具体数据(必填)
+         * 4.target为Page对象,一般为this(必填)
+         * 5.imagePadding为当图片自适应是左右的单一padding(默认为0,可选)
+         */
+        var that = this;
+        WxParse.wxParse('article', 'html', article, that, 5);
+      }
+    });
+  }
+
+  onShow() {}
+}
+</script>
+
+<style lang='less'>
+@import '../wxParse/wxParse.wxss';
+page {
+  padding-bottom: 96rpx;
+}
+swiper {
+  height: 720rpx;
+  image {
+    height: 100%;
+    display: block;
+    margin: 0 auto;
+  }
+}
+.price {
+  height: 124rpx;
+  line-height: 124rpx;
+  font-size: 40rpx;
+  color: #eb4450;
+  padding-left: 20rpx;
+  box-sizing: border-box;
+}
+.title {
+  display: flex;
+  .left {
+    flex: 1;
+    font-size: 32rpx;
+    padding: 0 80rpx 0 20rpx;
+  }
+  .right {
+    height: 80rpx;
+    width: 142rpx;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    align-items: center;
+    border-left: 1px solid #eee;
+    text {
+      font-size: 26rpx;
+      color: #999;
+    }
+  }
+}
+.express {
+  font-size: 30rpx;
+  height: 100rpx;
+  line-height: 100rpx;
+  padding-left: 20rpx;
+  color: #999;
+}
+.bottom {
+  .bt-nav {
+    height: 100rpx;
+    display: flex;
+    line-height: 100rpx;
+    font-size: 28rpx;
+    text-align: center;
+    view {
+      flex: 1;
+      &.active {
+        color: #eb4450;
+        box-shadow: inset 0 -10rpx 0rpx #eb4450;
+      }
+    }
+  }
+  .bt-footer {
+    width: 100%;
+    .wxParse-img {
+      width: 100%;
+      display: block;
+      margin: 0 auto;
+    }
+    .row1 {
+      width: 100%;
+      height: 80rpx;
+      padding: 0 40rpx;
+      display: flex;
+      text-align: center;
+      line-height: 80rpx;
+      font-size: 30rpx;
+      box-sizing: border-box;
+      view {
+        flex: 1;
+        border: 1px solid #ccc;
+        &.right {
+          border-left: none;
+        }
+      }
+    }
+    .row1:not(:last-child) {
+      view {
+        border-bottom: none;
+      }
+    }
+  }
+}
+
+.footer {
+  background-color: #fff;
+  z-index: 998;
+  width: 100%;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  height: 96rpx;
+  display: flex;
+  text-align: center;
+  .servier,
+  .cart {
+    height: 100%;
+    flex: 1;
+    font-size: 26rpx;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    view {
+    }
+  }
+  .addcart,
+  .buy {
+    height: 100%;
+    flex: 1;
+    line-height: 96rpx;
+    font-size: 30rpx;
+    background-color: #ffb400;
+    color: #fff;
+  }
+  .buy {
+    height: 100%;
+    flex: 1;
+    line-height: 96rpx;
+    font-size: 30rpx;
+    background-color: #ff2d4a;
+    color: #fff;
+  }
+}
+</style>

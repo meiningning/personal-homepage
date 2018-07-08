@@ -1,0 +1,292 @@
+<!--  -->
+<template>
+  <view class='header'>
+    <icon class='iconfont icon-xiaoxi'></icon>
+    <icon class='iconfont icon-shezhi'></icon>
+    <view class='user'>
+      <image @tap="tologin" src="{{userinfo?userinfo.avatarUrl:'../img/2.jpg'}}"></image>
+      <button  open-type="getUserInfo" bindgetuserinfo="bindGetUserInfo">授权登录</button>
+      <text>{{userinfo?userinfo.nickName:'随意登录/注册'}}</text>
+    </view>
+  </view>
+  <view class="main">
+    <view class="user-info">
+      <view class="block">
+        <text>0</text>
+        <text>收藏的店铺</text>
+      </view>
+      <view class="block">
+        <text>0</text>
+        <text>收藏的商品</text>
+      </view>
+      <view class="block">
+        <text>0</text>
+        <text>关注的商品</text>
+      </view>
+      <view class="block">
+        <text>0</text>
+        <text>我的足迹</text>
+      </view>
+    </view>
+    <view class="order">
+      <view class='order-title'>我的订单</view>
+      <view class='order-list' @tap='toorder'>
+          <view class="order-block">
+            <icon class='iconfont icon-daifukuan'></icon>
+            <text>待付款</text>
+          </view>
+          <view class="order-block">
+            <icon class='iconfont icon-daishouhuo'></icon>
+            <text>待收货</text>
+          </view>
+          <view class="order-block">
+            <icon class='iconfont icon-tuikuan'></icon>
+            <text>退货/退款</text>
+          </view>
+          <view class="order-block">
+            <icon class='iconfont icon-dingdan'></icon>
+            <text>订单</text>
+          </view>
+      </view>
+    </view>
+    <view class="address" @tap='getaddress'>
+      <text>收货地址管理</text>
+      <icon class='iconfont icon-jiantouyou'></icon>
+    </view>
+    <view class="footer">
+      <view class="footer-block">
+        <text>联系客服</text>
+        <text>400-618-4000</text>
+      </view>
+      <view class="footer-block">
+        <text>意见反馈</text>
+        <text class='iconfont icon-jiantouyou'></text>
+      </view>
+      <view class="footer-block">
+        <text>关于我们</text>
+        <text class='iconfont icon-jiantouyou'></text>
+      </view>
+    </view>
+  </view>
+  
+</template>
+<script>
+import wepy from 'wepy';
+var method = require('../until/method.js');
+export default class self extends wepy.page {
+  config = {
+    navigationBarTitleText: '我的'
+  };
+
+  data = {
+    userinfo: ''
+  };
+
+  components = {};
+
+  methods = {
+    tologin() {
+      wx.login({
+        success: res => {
+          var code = res.code;
+          wx.getUserInfo({
+            success: ddd => {
+              this.userinfo = ddd.userInfo;
+              this.$apply();
+              var userinfo = ddd.user;
+              method.request({
+                url: 'api/public/v1/users/wxlogin',
+                method: 'post',
+                data: {
+                  code: code,
+                  encryptedData: userinfo.encryptedData,
+                  rawData: userinfo.rawData,
+                  signature: userinfo.signature,
+                  iv: userinfo.iv
+                  },
+                  success: news => {
+                    var token=news.data.message.token
+                    wx.setStorage({
+                      key: 'token',
+                      data: token
+                    });
+                  }
+                
+              });
+            }
+          });
+        }
+      });
+    },
+    getaddress() {
+      wx.chooseAddress({
+        success: res => {
+          console.log(res);
+          // 打印地址信息
+          wx.setStorage({
+            key: 'address',
+            data: res
+          });
+        }
+      });
+    },
+    toorder: function() {
+      wx.navigateTo({
+        url: '/pages/order'
+      });
+    }
+  };
+
+  events = {};
+
+  watch = {};
+
+  computed = {};
+
+  onLoad() {}
+
+  onShow() {}
+}
+</script>
+
+<style lang='less'>
+.header {
+  background-color: #ff2d4a;
+  height: 426rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+
+  .iconfont {
+    font-size: 40rpx;
+    position: absolute;
+    bottom: 211rpx;
+    color: #fff;
+    &.icon-xiaoxi {
+      right: 211rpx;
+    }
+    &.icon-shezhi {
+      left: 211rpx;
+    }
+  }
+  .user {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 30rpx;
+    color: #fff;
+    position: relative;
+    image {
+      width: 140rpx;
+      height: 140rpx;
+      border-radius: 50%;
+      border: 5rpx solid #fff;
+      box-sizing: border-box;
+      margin-bottom: 20rpx;
+      z-index: 999;
+    }
+    button {
+      position: absolute;
+      opacity: 0;
+    }
+  }
+}
+.main {
+  padding: 0 16rpx;
+  background-color: #f4f4f4;
+  .user-info {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    height: 120rpx;
+    background-color: #fff;
+    text-align: center;
+    transform: translateY(-27rpx);
+    z-index: 999;
+    .block {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      font-size: 24rpx;
+      color: #666;
+      text:first-child {
+        color: #999;
+      }
+    }
+  }
+  .order {
+    margin-top: -7rpx;
+    background-color: #fff;
+    width: 100%;
+    .order-title {
+      width: 100%;
+      height: 88rpx;
+      border-bottom: 1px solid #eee;
+      line-height: 88rpx;
+      padding-left: 30rpx;
+      font-size: 32rpx;
+      box-sizing: border-box;
+    }
+    .order-list {
+      width: 100%;
+      height: 166rpx;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      .order-block {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-around;
+        font-size: 28rpx;
+        .iconfont {
+          font-size: 50rpx;
+          color: #ff2d4a;
+        }
+      }
+    }
+  }
+  .address {
+    width: 100%;
+    height: 87rpx;
+    padding: 0 32rpx;
+    line-height: 87rpx;
+    font-size: 30rpx;
+    box-sizing: border-box;
+    background-color: #fff;
+    margin-top: 20rpx;
+    text {
+      float: left;
+    }
+    icon {
+      float: right;
+      color: #ccc;
+    }
+  }
+  .footer {
+    margin-top: 20rpx;
+    background-color: #fff;
+    width: 100%;
+    padding: 0 30rpx;
+    box-sizing: border-box;
+
+    .footer-block {
+      width: 100%;
+      height: 86rpx;
+      border-bottom: 1px solid #eee;
+      line-height: 86rpx;
+      font-size: 30rpx;
+      text:first-child {
+        float: left;
+      }
+      text:nth-child(2) {
+        float: right;
+        color: #ccc;
+      }
+    }
+  }
+}
+</style>

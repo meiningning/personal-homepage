@@ -1,0 +1,56 @@
+<!--  -->
+<template>
+  <view class="box">
+      <tabBar :parentTitle.sync="parentTitle" :selectindex="selectindex"></tabBar>
+      <view class="content">
+          <view hidden='{{selectindex!=0}}'>1</view>
+          <view hidden='{{selectindex!=1}}'>2</view>
+          <view hidden='{{selectindex!=2}}'>3</view>
+          <view hidden='{{selectindex!=3}}'>4</view>
+
+      </view>
+  </view>
+</template>
+
+<script>
+import wepy from 'wepy';
+import tabBar from '../component/tabBar';
+export default class Example extends wepy.page {
+  config = {
+    navigationBarTitleText: '订单'
+  };
+
+  data = {
+    selectindex: 0,
+    parentTitle: ['全部', '待付款', '已付款', '退货']
+  };
+
+  components = {
+    tabBar: tabBar
+  };
+
+  methods = {
+    toselect(index) {
+      this.selectindex = index;
+    }
+  };
+
+  events = {};
+
+  watch = {};
+
+  computed = {};
+
+  onLoad() {}
+
+  onShow() {}
+}
+</script>
+
+<style lang='less'>
+page {
+  background-color: #f4f4f4;
+}
+.box {
+}
+</style>

@@ -1,0 +1,282 @@
+<!--  -->
+<template>
+  <view class="search-box">
+     <icon class='iconfont icon-sousuo'></icon> 
+     <input type="text" @input='searchvalue' placeholder='请输入你想要的商品' value='{{inputValue}}'>
+     <button @tap='tosearch' hidden='{{inputValue.length==0}}'>搜索</button>
+  </view>
+  <view class="history-box" hidden='{{!ishidden}}'>
+      <view class="history-title">
+          <view class="title">历史记录</view>
+          <view class="clear" @tap='cleardata'>x</view>
+      </view>
+      <view class="history-list">
+          <block wx:for='{{historyvalue}}'>
+            <view @tap='searchdata({{item}})'>{{item}}</view>  
+          </block>
+      </view>
+  </view>
+   <view class="product-list" hidden='{{ishidden}}'>
+          <view class="listNav">
+              <view @tap='totap(1)' class="all {{selectnum==1?'active':''}}">综合</view>
+              <view @tap='totap(2)' class="num {{selectnum==2?'active':''}}">销量</view>
+              <view @tap='totap(3)' class="price-list {{selectnum==3?'active':''}} iconfont {{istrue?'icon-jiantoushang':'icon-jiantouxia'}}">价格</view>
+          </view>
+          <block wx:for='{{listdata}}'>
+              <view class="product-box" data-id='{{item.goods_id}}' @tap='todetail'>
+                <image src='{{item.goods_small_logo}}'></image>
+                <view class="right">
+                  <view class="title">{{item.goods_name}}</view>
+                  <view class="price">￥<text>{{item.goods_price}}</text>.00</view>
+                </view>
+              </view>
+          </block>
+      </view>
+</template>
+
+<script>
+import wepy from 'wepy';
+var comment=require('../until/method.js');
+export default class search extends wepy.page {
+  config = {
+    navigationBarTitleText: '搜索页'
+  };
+
+  data = {
+    inputValue:'',
+    historyvalue:[],
+    listdata:'',
+    selectnum:1,
+    ishidden:true,
+    istrue:true,
+    listdataclone:''
+  };
+
+  components = {};
+
+  methods = {
+    searchvalue(e) {
+      console.log(e);
+      this.inputValue = e.detail.value.trim();
+    },
+    cleardata(){
+        this.historyvalue=[];
+        wx.removeStorage({
+            key: 'search'
+  } )
+    },
+    tosearch(){
+        if(this.inputValue.length==0){
+            this.ishidden=true;
+        }else{
+            this.ishidden=false;
+        }
+        var result=this.historyvalue.indexOf(this.inputValue);
+        if(result!=-1){
+            this.historyvalue.splice(result,1)
+        }
+        this.historyvalue.push(this.inputValue);
+        if(this.historyvalue.length>8){
+            this.historyvalue.splice(0,1)
+        }
+        wx.setStorage({
+            key: 'search',
+            data: this.historyvalue
+        });
+        wx.showLoading({
+            title: '加载中，请稍等！',
+            mask: true
+        });
+        console.log(this.inputValue);
+       comment.request({
+           url:'api/public/v1/goods/search',
+           data:{
+               query:this.inputValue},
+           success:(backdata)=>{
+               wx.hideLoading();
+               this.listdata=backdata.data.message.goods;
+               this.listdataclone=backdata.data.message.goods.slice(0);
+               this.$apply()
+           }
+       })
+    },
+    searchdata(e){
+        this.inputValue=e;
+    },
+    todetail(e){
+        var id=e.currentTarget.dataset.id
+        wx.navigateTo({
+            url: '/pages/detail?id='+id
+        });
+    },
+    totap(index){
+        this.selectnum=index;
+        
+        if(index==2){
+            function sortlist(a,b){
+                return a.goods_id - b.goods_id
+            }
+            this.listdata.sort(sortlist)
+        }else if(index==3){
+            this.istrue=!this.istrue;
+            if(this.istrue){
+               function sortlist(a,b){
+                return a.goods_price - b.goods_price
+            }
+            this.listdata.sort(sortlist) 
+            }else{
+            function sortlist(a,b){
+                return b.goods_price - a.goods_price
+            }
+            this.listdata.sort(sortlist)
+            }
+        }else if(index==1){
+            this.listdata=this.listdataclone.slice(0)
+        }
+    }
+  };
+
+  events = {};
+
+  watch = {};
+
+  computed = {};
+
+  onLoad() {
+    wx.getStorage({
+      key: 'search',
+      success:res=> {
+        console.log(res);
+        this.historyvalue=res.data;
+        this.$apply();
+      },
+      fail:res=>{
+          console.log('hehe');
+          this.historyvalue=[];
+          this.$apply();
+      }
+    });
+  }
+
+  onShow() {}
+}
+</script>
+
+<style lang='less'>
+.search-box {
+  height: 120rpx;
+  background-color: #eee;
+  padding: 30rpx 16rpx;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  position: relative;
+  icon {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    left: 37rpx;
+  }
+  input {
+    flex: 1;
+    height: 60rpx;
+    background-color: #fff;
+    padding-left: 80rpx;
+    box-sizing: border-box;
+    margin-right: 20rpx;
+    font-size: 28rpx;
+    border-radius: 10rpx;
+  }
+  button {
+    width: 160rpx;
+    height: 60rpx;
+    border: 1px solid #bfbfbf;
+    font-size: 30rpx;
+    line-height: 60rpx;
+    background-color: transparent;
+  }
+}
+.history-box {
+  padding: 28rpx 0 0 17rpx;
+  .history-title {
+    display: flex;
+    padding-right: 30rpx;
+    box-sizing: border-box;
+    justify-content: space-between;
+    .title {
+      font-size: 32rpx;
+    }
+    .clear {
+      width: 30rpx;
+      height: 30rpx;
+      background-color: #ccc;
+      border-radius: 50%;
+      color: #fff;
+      font-size: 26rpx;
+      line-height: 30rpx;
+      text-align: center;
+    }
+  }
+  .history-list {
+    padding-top: 32rpx;
+    
+    overflow: hidden;
+    view {
+      padding: 20rpx 25rpx;
+      font-size: 28rpx;
+      float: left;
+      background-color: #ddd;
+      margin-right: 30rpx;
+      margin-bottom: 20px;
+    }
+  }
+}
+.product-list{
+    padding-left: 20rpx;
+    .listNav{
+        height: 100rpx;
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        text-align: center;
+        font-size: 30rpx;
+        border-bottom: 1px solid #ddd;
+        view{
+            flex: 1;
+            &.active{
+                color:#eb4450;
+            }
+        }
+    }
+    .product-box{
+        height: 260rpx;
+        display:flex;
+        padding: 30rpx 26rpx 30rpx 0;
+        border-bottom: 1px solid #eee;
+        box-sizing: border-box;
+        image{
+            height: 100%;
+            width: 200rpx;
+            margin-right: 27rpx;
+        }
+        .right{
+            flex:1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            .title{
+                font-size: 30rpx;
+                height: 80rpx;
+                overflow: hidden;
+            }
+            .price{
+                font-size: 24rpx;
+                color:#eb4450;
+                text{
+                    font-size: 36rpx;
+                }
+            }
+        }
+    }
+}
+</style>

@@ -1,0 +1,52 @@
+<template lang="wxml">
+   <view class="box">
+    <icon type="search"></icon>
+    <input @tap='tosearch' type="text" placeholder="搜索">
+  </view>
+</template>
+
+<script>
+import wepy from 'wepy';
+export default class Com extends wepy.component {
+    components = {};
+
+    data = {};
+    methods = {
+      tosearch(){
+        wx.navigateTo({
+          url: '/pages/search'
+        });
+      }
+    };
+
+    events = {};
+    // Other properties
+}
+</script>
+
+<style lang="less">
+.box {
+  height: 100rpx;
+  background-color: #ff2d4a;
+  padding: 20rpx 16rpx;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  position: relative;
+}
+.box input {
+  background-color: #fff;
+  width: 100%;
+  height: 100%;
+  border-radius: 10rpx;
+  text-align: center;
+  font-size: 24rpx;
+}
+.box icon {
+  position: absolute;
+  left: 50%;
+  transform: translate(-150%);
+  z-index: 100;
+  top: 28rpx;
+}
+</style>

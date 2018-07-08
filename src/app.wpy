@@ -1,0 +1,64 @@
+<style lang="less">
+@import '/pages/字体图标/iconfont.wxss';
+</style>
+
+<script>
+import wepy from 'wepy';
+
+export default class extends wepy.app {
+  config = {
+    pages: ['pages/index',
+             'pages/category',
+             'pages/youshow',
+             'pages/buycart',
+             'pages/self',
+             'pages/order',
+             'pages/search',
+             'pages/detail'
+             ],
+    window: {
+      backgroundTextStyle: 'light',
+      navigationBarBackgroundColor: '#ff2d4a',
+      navigationBarTitleText: '优购',
+      navigationBarTextStyle: 'white'
+    },
+    tabBar: {
+      selectedColor:'#ff2d4a',
+      list: [
+        {
+          iconPath:'/img/icon_home@3x.png',
+          pagePath: 'pages/index',
+          selectedIconPath:'/img/icon_home_active@3x.png',
+          text: '首页'
+        },
+        {
+          iconPath:'/img/icon_category@3x.png',
+          pagePath: 'pages/category',
+          selectedIconPath:'/img/icon_category_active@3x.png',
+          text: '分类'
+
+        },
+        {
+          iconPath:'/img/icon_cart@3x.png',
+          pagePath: 'pages/buycart',
+          selectedIconPath:'/img/icon_cart_active@3x.png',
+          text: '购物车'
+
+        },
+        {
+          iconPath:'/img/icon_me@3x.png',
+          pagePath: 'pages/self',
+          selectedIconPath:'/img/icon_me_active@3x.png',
+          text: '我的'
+
+        }
+
+      ]
+    }
+  };
+
+  onLaunch() {
+    console.log('on launch');
+  }
+}
+</script>

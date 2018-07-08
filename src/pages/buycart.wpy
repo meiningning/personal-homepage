@@ -1,0 +1,460 @@
+<!--  -->
+<template>
+<view class='emptycart' hidden='{{!ishidden}}'>
+  <view class='iconfont icon-daishouhuo'>
+  </view>
+  <view>你的购物车空空如也...</view>
+</view>
+<view hidden='{{ishidden}}'>
+  <view class="consignee" @tap='toaddress'>
+    <view class="row">
+      <text>收货人:{{address.userName}}</text>
+      <text class='iconfont icon-jiantouyou'></text>
+      <text>{{address.telNumber}}</text>
+    </view>
+    <view class="row1">
+      <text>收货地址 :{{address.provinceName}}{{address.cityName}}{{address.countyName}}{{address.detailInfo}}</text>
+    </view>
+  </view>
+  <image class='color-lump' src='../img/border.PNG'></image>
+  <view class='color-lump1'></view>
+  <view class="live">
+    <icon class='iconfont icon-dianpu'></icon>
+    <text>优购生活馆</text>
+  </view>
+  <block wx:for='{{goodsdetail}}'>
+  <view class="list-row" >
+    <view class="list-left">
+      <radio @tap='tocheck({{index}})' checked='{{item.ischeck}}'></radio>
+    </view>
+    <view class="list-right">
+      <image src='{{item.goods_small_logo}}' @tap='todetail({{item.goods_id}})'></image>
+      <view class="list-box">
+        <text>{{item.goods_name}}</text>
+        <view class="num-box">
+          <view @tap='addnum({{item.goods_id}})' class="sub">+</view>
+          <view class='num'>{{goodsnum[item.goods_id]}}</view>
+          <view @tap='subnum({{item.goods_id}})' class='add'>-</view>
+        </view>
+      </view>
+    </view>
+  </view>
+  </block>
+  <view class='total'>
+    <view class="portion1">
+      <radio checked='{{ischeckedall}}' @tap='tocheckedall'>全选</radio>
+    </view>
+    <view class="portion2">
+      <view class="top">合计:￥{{totalprice}}</view>
+      <view class="bottom">包含运费</view>
+    </view>
+    <view @tap='paymoney' class="portion3">结算({{totalnum}})</view>
+  </view>
+   </view>
+</template>
+<script>
+import wepy from 'wepy';
+var method = require('../until/method.js');
+export default class Example extends wepy.page {
+  config = {
+    navigationBarTitleText: '我的购物车'
+  };
+  data = {
+    address: '',
+    goodsIds: '',
+    goodsdetail: [],
+    goodsnum: {},
+    ishidden: '',
+    ischeckedall: true,
+    totalprice: '',
+    totalnum: ''
+  };
+
+  components = {};
+
+  methods = {
+    tocheckedall() {
+      this.ischeckedall = !this.ischeckedall;
+      this.goodsdetail.forEach(res => {
+        res.ischeck = this.ischeckedall;
+      });
+    },
+    paymoney() {
+      if (this.totalnum == '') {
+        wx.showToast({
+          title: '还未选择需要购买的商品',
+          icon: 'none',
+          duration: 500,
+          mask: false
+        });
+        return;
+      }
+      if (this.address == '') {
+        wx.showToast({
+          title: '还未填写地址',
+          icon: 'none',
+          duration: 500,
+          mask: false
+        });
+        return;
+      }
+      var token = wx.getStorageSync('token');
+      wx.getStorage({
+        key: 'token',
+        success: res => {
+          var temarr = [];
+          var obj = {};
+          for (var i = 0; i < this.goodsdetail.length; i++) {
+            if (this.goodsdetail[i].ischeck == true) {
+              obj.goods_id = this.goodsdetail[i].goods_id;
+              obj.goods_number = this.goodsnum[this.goodsdetail[i].goods_id];
+              obj.goods_price = this.goodsdetail[i].goods_price;
+            }
+            temarr.push(obj);
+          }
+          method.request({
+            url: 'api/public/v1/my/orders/create',
+            method: 'post',
+            header: {
+              Authorization: token
+            },
+            data: {
+              order_price: this.totalprice,
+              consignee_addr: `${this.address.cityName}${
+                this.address.countyName
+              }${this.address.detailInfo}`,
+              goods: temarr
+            },
+            success: tem => {
+              console.log(tem);
+              var order_number = tem.data.message.order_number;
+              if (tem.data.meta.msg == '创建订单成功') {
+                method.request({
+                  url: 'api/public/v1/my/orders/req_unifiedorder',
+                  method: 'post',
+                  header: {
+                    Authorization: token
+                  },
+                  data: {
+                    order_number: order_number
+                  },
+                  success: pic => {
+                    console.log(pic);
+                  }
+                });
+              }
+            }
+          });
+        },
+        fail: res => {
+          wx.showModal({
+            title: '登录提示',
+            content: '还未登录，无法购买',
+            showCancel: true,
+            cancelText: '取消',
+            cancelColor: '#000000',
+            confirmText: '确定',
+            confirmColor: '#3CC51F',
+            success: res => {
+              if (res.confirm) {
+                wx.switchTab({
+                  url: '/pages/self'
+                });
+              }
+              return;
+            }
+          });
+        }
+      });
+    },
+    todetail(id) {
+      wx.navigateTo({
+        url: '/pages/detail?id=' + id
+      });
+    },
+    toaddress() {
+      wx.chooseAddress({
+        success: res => {
+          wx.setStorage({
+            key: 'address',
+            data: res
+          });
+          wx.getStorage({
+            key: 'address',
+            success: res => {
+              this.address = res.data;
+              this.$apply();
+            }
+          });
+        }
+      });
+    },
+    addnum(i) {
+      this.goodsnum[i]++;
+      wx.getStorage({
+        key: 'cart',
+        success: res => {
+          res.data[i]++;
+          wx.setStorage({
+            key: 'cart',
+            data: res.data
+          });
+        }
+      });
+    },
+    subnum(i) {
+      this.goodsnum[i]--;
+      if (this.goodsnum[i] == 0) {
+        delete this.goodsnum[i];
+        for (var k = 0; k < this.goodsdetail.length; k++) {
+          if (i == this.goodsdetail[k].goods_id) {
+            // 这个已经没有了
+            // 删除数组中的这个数据
+            console.log('hehe');
+            this.goodsdetail.splice(k, 1);
+          }
+        }
+      }
+      wx.setStorage({
+        key: 'cart',
+        data: this.goodsnum
+      });
+    },
+    //点击复选框，修改总价
+    tocheck(i) {
+      this.goodsdetail[i].ischeck = !this.goodsdetail[i].ischeck;
+      for (var i = 0; i < this.goodsdetail.length; i++) {
+        if (this.goodsdetail[i].ischeck == false) {
+          this.ischeckedall = false;
+          return;
+        }
+        this.ischeckedall = true;
+      }
+    }
+  };
+
+  events = {};
+
+  watch = {};
+
+  computed = {
+    totalprice() {
+      var totalprice = 0;
+      for (var i = 0; i < this.goodsdetail.length; i++) {
+        if (this.goodsdetail[i].ischeck == true) {
+          totalprice +=
+            this.goodsdetail[i].goods_price *
+            this.goodsnum[this.goodsdetail[i].goods_id];
+        }
+      }
+      this.totalprice = totalprice;
+      return totalprice;
+    },
+    totalnum() {
+      var totalnum = 0;
+      for (var i = 0; i < this.goodsdetail.length; i++) {
+        if (this.goodsdetail[i].ischeck == true) {
+          totalnum++;
+        }
+      }
+      this.totalnum = totalnum;
+      return totalnum;
+    }
+  };
+
+  onLoad() {}
+
+  onShow() {
+    wx.getStorage({
+      key: 'address',
+      success: res => {
+        this.address = res.data;
+        this.$apply();
+      }
+    });
+    wx.getStorage({
+      key: 'cart',
+      success: res => {
+        if (res) {
+          this.ishidden = false;
+          this.goodsnum = res.data;
+          var goodsIds = '';
+          for (var key in res.data) {
+            goodsIds += key;
+            goodsIds += ',';
+          }
+          goodsIds = goodsIds.slice(0, -1);
+          method.request({
+            url: 'api/public/v1/goods/goodslist',
+            data: {
+              goods_ids: goodsIds
+            },
+            success: res => {
+              for (var i = 0; i < res.data.message.length; i++) {
+                res.data.message[i].ischeck = true;
+              }
+              this.goodsdetail = res.data.message;
+              this.$apply();
+            }
+          });
+        } else {
+          this.ishidden = true;
+        }
+      },
+      fail: res => {
+        this.ishidden = true;
+      }
+    });
+  }
+}
+</script>
+
+<style lang='less'>
+page {
+  padding-bottom: 98rpx;
+}
+.emptycart {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #eb4450;
+  .iconfont {
+    margin-top: 200rpx;
+    font-size: 200rpx;
+    color: #eb4450;
+  }
+}
+.consignee {
+  height: 208rpx;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: 28rpx;
+  line-height: 28rpx;
+  padding: 0 34rpx 0 18rpx;
+  box-sizing: border-box;
+  .row {
+    width: 100%;
+    .iconfont {
+      float: right;
+      color: #ccc;
+    }
+    text {
+      &:nth-child(3) {
+        float: right;
+        margin-right: 30rpx;
+      }
+    }
+  }
+  .row1 {
+    display: flex;
+    margin-top: 54rpx;
+    align-items: center;
+  }
+}
+.color-lump {
+  height: 14rpx;
+  width: 100%;
+  background-color: skyblue;
+  display: block;
+}
+.color-lump1 {
+  height: 20rpx;
+  width: 100%;
+  background-color: #bbb;
+}
+.live {
+  height: 87rpx;
+  border-bottom: 1px solid #eee;
+  padding: 0 33rpx;
+  line-height: 87rpx;
+  font-size: 32rpx;
+  .iconfont {
+    margin-right: 15rpx;
+    color: #999;
+  }
+}
+.list-row {
+  height: 205rpx;
+  display: flex;
+  .list-left {
+    width: 88rpx;
+    height: 205rpx;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .list-right {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    image {
+      width: 160rpx;
+      height: 160rpx;
+      margin-right: 24rpx;
+    }
+    .list-box {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      font-size: 30rpx;
+      padding-right: 18rpx;
+      box-sizing: border-box;
+      text {
+        height: 80rpx;
+        overflow: hidden;
+      }
+      .num-box {
+        margin-top: 40rpx;
+        view {
+          float: right;
+          border: 4rpx solid #666;
+          height: 52rpx;
+          width: 52rpx;
+          box-sizing: border-box;
+          text-align: center;
+          line-height: 42rpx;
+        }
+        .num {
+          border: none;
+          width: 80rpx;
+          line-height: 52rpx;
+        }
+      }
+    }
+  }
+}
+.total {
+  width: 100%;
+  height: 97rpx;
+  display: flex;
+  position: fixed;
+  bottom: 0rpx;
+  background-color: #fff;
+
+  left: 0;
+  font-size: 30rpx;
+  .portion1 {
+    width: 200rpx;
+    display: flex;
+    line-height: 97rpx;
+    justify-content: space-around;
+  }
+  .portion2 {
+    padding-left: 40rpx;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+  }
+  .portion3 {
+    width: 228rpx;
+    line-height: 97rpx;
+    color: #fff;
+    text-align: center;
+    background-color: #eb4450;
+  }
+}
+</style>

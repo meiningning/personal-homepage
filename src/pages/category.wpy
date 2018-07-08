@@ -1,0 +1,149 @@
+<!--  -->
+<template>
+  <searchBar></searchBar>
+ <view class="scroll-box">
+<scroll-view class='left' scroll-y >
+ <block wx:for='{{categorydata}}'>
+   <view data-index='{{item.cat_id}}' class="list {{index==selectindex?'active':''}}" @tap='toselect({{index}})'>
+    {{item.cat_name}}
+   </view>
+</block>  
+</scroll-view>
+<scroll-view class='right' scroll-y >
+ <block wx:for='{{categorydata[selectindex].children}}' wx:for-item="a">
+   <image class='pic' src='../img/pic.png'></image>
+   <view class="product">{{a.cat_name}}</view>
+   <view class="allproduct">
+     <block wx:for='{{a.children}}' wx:for-item="t">
+       <view class="box1">
+         <image src='https://www.zhengzhicheng.cn/{{t.cat_icon}}'></image>
+         <text>{{t.cat_name}}</text>
+       </view>
+     </block>
+   </view>
+ </block>
+</scroll-view>
+
+ </view>
+</template>
+
+<script>
+  import wepy from 'wepy'
+  import searchBar from "../component/searchBar";
+  var method=require('../until/method.js');
+  export default class Example extends wepy.page {
+    config = {
+      navigationBarTitleText: "分类",
+    };
+
+    data = {
+      categorydata:'',
+      selectindex:0
+    };
+
+    components = {
+      searchBar
+    };
+
+    methods = {
+      toselect:(index)=>{
+        this.selectindex=index;
+        this.$apply();
+      }
+    };
+
+    events = {};
+
+    watch = {};
+
+    computed = {};
+
+    onLoad() { 
+      console.log(method);
+      method.request({
+        url:'api/public/v1/categories',
+        success:(backdata)=>{
+          this.categorydata=backdata.data.message;
+          this.$apply();
+        }
+      })
+    };
+
+    onShow() { };
+  }
+</script>
+
+<style lang='less'>
+page{
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.scroll-box{
+  flex: 1;
+  width: 100%;
+  display: flex;
+  scroll-view{
+    height: 100%;
+    &.left{
+      width: 200rpx;
+      .list{
+        width: 200rpx;
+        height: 100rpx;
+        text-align: center;
+        font-size: 28rpx;
+        font-weight: 700;
+        line-height: 100rpx;
+        background-color: #f4f4f4;
+        &.active{
+          background-color: #fff;
+          color:#eb4450;
+          position: relative;
+          &::before{
+            content: '';
+            position: absolute;
+            width: 10rpx;
+            height: 60rpx;
+            top: 20rpx;
+            left: 0;
+            background-color:#eb4450;
+
+          }
+        }
+      }
+    }
+    &.right{
+      flex: 1;
+      .pic{
+        width: 520rpx;
+        height: 178rpx;
+        margin: 20rpx 16rpx;
+      }
+      .product{
+        text-align: center;
+        font-size: 30rpx;
+      }
+      .allproduct{
+        display: flex;
+        flex-flow: wrap;
+        .box1{
+          width: 33.33333%;
+          display: flex;
+          text-align: center;
+          flex-direction: column;
+          align-items: center;
+          font-size: 26rpx;
+          margin: 15rpx 0;
+          image{
+            display: block;
+            width: 100rpx;
+            height: 76rpx;
+          }
+        }
+      }
+    }
+
+  }
+}
+
+</style>
